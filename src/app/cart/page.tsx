@@ -96,7 +96,9 @@ export default function CartPage() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const [showReview, setShowReview] = useState(false);
+
+    const handlePlaceOrderClick = (e: React.FormEvent) => {
         e.preventDefault();
         if (items.length === 0) return;
 
@@ -114,6 +116,10 @@ export default function CartPage() {
             return;
         }
 
+        setShowReview(true);
+    };
+
+    const confirmOrder = async () => {
         const discountAmount = Math.round((total * discount) / 100);
         const finalTotal = (total - discountAmount) + shipping;
 
@@ -135,14 +141,16 @@ export default function CartPage() {
             const data = await res.json();
             if (data.success) {
                 setSuccess(true);
-                setOrderId(data.data?._id || 'ID-MISSING');
+                setOrderId(data.data?.orderId || data.data?._id || 'ID-MISSING');
                 clearCart();
             } else {
                 alert('Order failed: ' + data.error);
+                setShowReview(false);
             }
         } catch (error) {
             console.error(error);
             alert('An error occurred');
+            setShowReview(false);
         } finally {
             setLoading(false);
         }
@@ -273,7 +281,7 @@ export default function CartPage() {
                                 </div>
 
                                 <h2 className="text-xl font-bold mb-6">Shipping Details</h2>
-                                <form onSubmit={handleSubmit} className="space-y-4">
+                                <form onSubmit={handlePlaceOrderClick} className="space-y-4">
                                     {/* ... existing inputs ... */}
                                     <div className="space-y-4">
                                         <div className="space-y-2">
@@ -394,6 +402,59 @@ export default function CartPage() {
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {/* Review Modal */}
+                {showReview && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+                        <div className="bg-zinc-900 border border-zinc-700 p-8 rounded-2xl w-full max-w-md">
+                            <h2 className="text-2xl font-bold mb-6 text-yellow-500">Review Order</h2>
+
+                            <div className="space-y-3 mb-6 text-zinc-300">
+                                <div className="flex justify-between">
+                                    <span>Subtotal</span>
+                                    <span>Rs. {total}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Shipping</span>
+                                    <span>Rs. {shipping}</span>
+                                </div>
+                                {discount > 0 && (
+                                    <div className="flex justify-between text-green-500">
+                                        <span>Discount</span>
+                                        <span>- Rs. {Math.round((total * discount) / 100)}</span>
+                                    </div>
+                                )}
+                                <div className="border-t border-zinc-700 pt-3 flex justify-between font-bold text-white text-lg">
+                                    <span>Total</span>
+                                    <span>Rs. {(total - Math.round((total * discount) / 100)) + shipping}</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800 mb-8">
+                                <p className="text-sm text-zinc-500 mb-1">Payment Method</p>
+                                <p className="bg-green-500/20 text-green-500 inline-block px-3 py-1 rounded text-sm font-bold border border-green-500/30">
+                                    Cash on Delivery
+                                </p>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setShowReview(false)}
+                                    className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition"
+                                >
+                                    Back
+                                </button>
+                                <button
+                                    onClick={confirmOrder}
+                                    disabled={loading}
+                                    className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
+                                >
+                                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    {loading ? 'Processing...' : 'Confirm Order'}
+                                </button>
                             </div>
                         </div>
                     </div>

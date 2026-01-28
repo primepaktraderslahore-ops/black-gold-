@@ -34,7 +34,10 @@ export async function POST(req: Request) {
             }
         }
 
-        const newOrder = await Order.create({ ...body, totalAmount: finalTotal });
+        // Generate Random Order ID (10000 - 1000000)
+        const orderId = Math.floor(10000 + Math.random() * 990000).toString();
+
+        const newOrder = await Order.create({ ...body, totalAmount: finalTotal, orderId });
 
         return NextResponse.json({ success: true, data: newOrder });
     } catch (error) {
