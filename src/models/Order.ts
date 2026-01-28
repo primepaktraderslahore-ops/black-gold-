@@ -44,14 +44,24 @@ const OrderSchema: Schema = new Schema(
             phone: {
                 type: String,
                 required: true,
-                match: [/^\d+$/, 'Phone number must contain only digits.']
+                validate: {
+                    validator: function (v: string) {
+                        return /^\d{11}$/.test(v);
+                    },
+                    message: (props: any) => `${props.value} is not a valid 11-digit phone number!`
+                }
             },
             address: { type: String, required: true },
             address2: { type: String },
             cnic: {
                 type: String,
                 required: true,
-                match: [/^\d+$/, 'CNIC must contain only digits.']
+                validate: {
+                    validator: function (v: string) {
+                        return /^\d{13}$/.test(v);
+                    },
+                    message: (props: any) => `${props.value} is not a valid 13-digit CNIC!`
+                }
             },
             postalCode: { type: String, required: true },
             province: { type: String, required: true },

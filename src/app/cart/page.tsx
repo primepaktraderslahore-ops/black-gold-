@@ -106,13 +106,23 @@ export default function CartPage() {
         const phoneRegex = /^\d+$/;
         const cnicRegex = /^\d+$/;
 
-        if (!phoneRegex.test(formData.phone)) {
-            alert("Phone number must contain only digits.");
+        if (!formData.address.trim()) {
+            alert("Address is required.");
             return;
         }
 
-        if (!cnicRegex.test(formData.cnic)) {
-            alert("CNIC must contain only digits.");
+        if (!formData.city.trim()) {
+            alert("City is required.");
+            return;
+        }
+
+        if (!phoneRegex.test(formData.phone) || formData.phone.length !== 11) {
+            alert("Phone number must be exactly 11 digits.");
+            return;
+        }
+
+        if (!cnicRegex.test(formData.cnic) || formData.cnic.length !== 13) {
+            alert("CNIC must be exactly 13 digits.");
             return;
         }
 
