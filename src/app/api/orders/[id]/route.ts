@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Order from '@/models/Order';
 
+import Setting from '@/models/Setting';
+
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         await dbConnect();
@@ -16,6 +18,33 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         if (!order) {
             return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+        }
+
+        // Trigger Webhook if status changed to DELIVERED
+        if (body.status === 'Delivered') {
+            const setting = await Setting.findOne({ key: 'google_sheet_url' });
+            if (setting && setting.value) {
+                // Async fire and forget or await? Await to log error but don't fail request
+                try {
+                    const payload = {
+                        orderId: (order as any)._id,
+                        date: new Date().toISOString(),
+                        customerName: (order as any).customer.name,
+                        phone: (order as any).customer.phone,
+                        total: (order as any).totalAmount,
+                        items: (order as any).items.map((i: any) => `${i.quantity}x ${i.variant}`).join(', ')
+                    };
+
+                    // Google Apps Script usually expects POST
+                    await fetch(setting.value, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (webhookErr) {
+                    console.error('Webhook failed:', webhookErr);
+                }
+            }
         }
 
         return NextResponse.json({ success: true, data: order }, { status: 200 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { Trash2, Loader2, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -14,6 +14,28 @@ export default function CartPage() {
     // However, if the user requested "wholesale option must be in main page", we use the item's flag.
     // We check if ANY item is wholesale to flag the order as wholesale.
 
+    const [shipping, setShipping] = useState(0);
+    const [shippingRates, setShippingRates] = useState<Record<string, number>>({
+        Punjab: 199,
+        Sindh: 299,
+        KPK: 299,
+        Balochistan: 299,
+        'Gilgit Baltistan': 299,
+        AJK: 299,
+        Islamabad: 199
+    });
+
+    useEffect(() => {
+        // Fetch dynamic rates
+        fetch('/api/admin/content')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data && data.data.shippingRates) {
+                    setShippingRates(prev => ({ ...prev, ...data.data.shippingRates }));
+                }
+            });
+    }, []);
+
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -26,9 +48,49 @@ export default function CartPage() {
         city: '',
     });
 
+    const [referralCode, setReferralCode] = useState('');
+    const [discount, setDiscount] = useState(0);
+    const [referralError, setReferralError] = useState('');
+    const [verifying, setVerifying] = useState(false);
+
+    const verifyCode = async () => {
+        setVerifying(true);
+        setReferralError('');
+        try {
+            const res = await fetch('/api/referral-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: referralCode })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setDiscount(data.discountPercentage);
+            } else {
+                setDiscount(0);
+                setReferralError(data.error);
+            }
+        } catch (err) {
+            setReferralError('Verification failed');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
     // ...
 
     const isOrderWholesale = items.some(i => i.isWholesale);
+
+    const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const province = e.target.value;
+        setFormData({ ...formData, province });
+
+        // Dynamic Shipping Logic
+        if (province && shippingRates[province] !== undefined) {
+            setShipping(shippingRates[province]);
+        } else {
+            setShipping(0);
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -52,6 +114,9 @@ export default function CartPage() {
             return;
         }
 
+        const discountAmount = Math.round((total * discount) / 100);
+        const finalTotal = (total - discountAmount) + shipping;
+
         setLoading(true);
         try {
             const res = await fetch('/api/orders', {
@@ -60,9 +125,10 @@ export default function CartPage() {
                 body: JSON.stringify({
                     customer: formData,
                     items: items,
-                    totalAmount: total,
+                    totalAmount: finalTotal,
                     status: 'Accepted',
-                    isWholesale: isOrderWholesale
+                    isWholesale: isOrderWholesale,
+                    referralCode: discount > 0 ? referralCode : undefined
                 }),
             });
 
@@ -161,8 +227,54 @@ export default function CartPage() {
                         {/* Checkout Form */}
                         <div>
                             <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
+                                {/* Discount Code */}
+                                <div className="mb-6 pb-6 border-b border-zinc-800">
+                                    <h3 className="font-bold mb-3">Discount Code</h3>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={referralCode}
+                                            onChange={(e) => setReferralCode(e.target.value)}
+                                            placeholder="Enter Code"
+                                            className="bg-zinc-950 border border-zinc-700 rounded-lg p-3 flex-1 focus:outline-none focus:border-yellow-500 uppercase"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={verifyCode}
+                                            disabled={verifying || !referralCode}
+                                            className="bg-zinc-800 text-white px-4 py-2 rounded-lg hover:bg-zinc-700 transition disabled:opacity-50"
+                                        >
+                                            {verifying ? '...' : 'Apply'}
+                                        </button>
+                                    </div>
+                                    {referralError && <p className="text-red-500 text-sm mt-2">{referralError}</p>}
+                                    {discount > 0 && <p className="text-green-500 text-sm mt-2">Code applied! {discount}% Off</p>}
+                                </div>
+
+                                <div className="mt-2 mb-6 space-y-2">
+                                    <div className="flex justify-between text-zinc-400">
+                                        <span>Subtotal</span>
+                                        <span>Rs. {total}</span>
+                                    </div>
+                                    <div className="flex justify-between text-zinc-400">
+                                        <span>Shipping</span>
+                                        <span>Rs. {shipping}</span>
+                                    </div>
+                                    {discount > 0 && (
+                                        <div className="flex justify-between text-green-500">
+                                            <span>Discount ({discount}%)</span>
+                                            <span>- Rs. {Math.round((total * discount) / 100)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-xl font-bold text-yellow-500 pt-4 border-t border-zinc-800">
+                                        <span>Grand Total</span>
+                                        <span>Rs. {(total - Math.round((total * discount) / 100)) + shipping}</span>
+                                    </div>
+                                </div>
+
                                 <h2 className="text-xl font-bold mb-6">Shipping Details</h2>
                                 <form onSubmit={handleSubmit} className="space-y-4">
+                                    {/* ... existing inputs ... */}
                                     <div className="space-y-4">
                                         <div className="space-y-2">
                                             <label className="text-sm text-zinc-400">Full Name</label>
@@ -244,13 +356,21 @@ export default function CartPage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-sm text-zinc-400">Province</label>
-                                                <input
-                                                    type="text"
+                                                <select
                                                     name="province"
                                                     required
-                                                    className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 focus:outline-none focus:border-yellow-500"
-                                                    onChange={handleChange}
-                                                />
+                                                    className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 focus:outline-none focus:border-yellow-500 appearance-none"
+                                                    onChange={handleProvinceChange}
+                                                    value={formData.province}
+                                                >
+                                                    <option value="">Select Province</option>
+                                                    <option value="Punjab">Punjab</option>
+                                                    <option value="Sindh">Sindh</option>
+                                                    <option value="KPK">KPK</option>
+                                                    <option value="Balochistan">Balochistan</option>
+                                                    <option value="Gilgit Baltistan">Gilgit Baltistan</option>
+                                                    <option value="AJK">AJK</option>
+                                                </select>
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm text-zinc-400">City</label>

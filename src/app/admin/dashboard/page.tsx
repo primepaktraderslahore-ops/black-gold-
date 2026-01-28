@@ -49,21 +49,26 @@ export default function DashboardPage() {
     const [analytics, setAnalytics] = useState<Analytics>({ daily: 0, weekly: 0, monthly: 0 });
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<string>(Status.ACCEPTED);
+    const [role, setRole] = useState<string>('');
     const router = useRouter();
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [ordersRes, analyticsRes] = await Promise.all([
+            const [ordersRes, analyticsRes, meRes] = await Promise.all([
                 fetch('/api/orders'),
-                fetch('/api/analytics')
+                fetch('/api/analytics'),
+                fetch('/api/auth/me')
             ]);
 
             const ordersData = await ordersRes.json();
             const analyticsData = await analyticsRes.json();
+            let meData: any = { user: null };
+            try { meData = await meRes.json(); } catch (e) { }
 
             if (ordersData.success) setOrders(ordersData.data);
             if (analyticsData.success) setAnalytics(analyticsData.data);
+            if (meData.user) setRole(meData.user.role);
 
         } catch (error) {
             console.error(error);
@@ -105,20 +110,43 @@ export default function DashboardPage() {
         }
     };
 
-    const handleLogout = () => {
-        document.cookie = 'admin_auth=; Max-Age=0; path=/;';
-        router.push('/login');
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            router.push('/login');
+        } catch (error) {
+            console.error('Logout failed', error);
+        }
     };
 
     const filteredOrders = orders.filter(o => o.status === activeTab);
 
     const StatusTabs = [Status.ACCEPTED, Status.READY_FOR_DELIVERY, Status.IN_DELIVERY, Status.DELIVERED, Status.CANCELLED];
 
+
+
+    // ...
+
     return (
         <div className="min-h-screen bg-black text-white p-6">
             <div className="max-w-7xl mx-auto">
                 <header className="flex justify-between items-center mb-10 border-b border-zinc-800 pb-6">
-                    <h1 className="text-3xl font-bold text-yellow-500">Admin Dashboard</h1>
+                    <div className="flex flex-col">
+                        <h1 className="text-3xl font-bold text-yellow-500">Admin Dashboard</h1>
+                        <nav className="flex gap-6 mt-4 text-sm font-medium">
+                            <button onClick={() => router.push('/admin/dashboard')} className="text-white border-b-2 border-yellow-500 pb-1">Orders</button>
+                            {role === 'super_admin' && (
+                                <>
+                                    <button onClick={() => router.push('/admin/products')} className="text-zinc-400 hover:text-white transition">Products</button>
+                                    <button onClick={() => router.push('/admin/users')} className="text-zinc-400 hover:text-white transition">Users</button>
+                                    <button onClick={() => router.push('/admin/referrals')} className="text-zinc-400 hover:text-white transition">Referrals</button>
+                                    <button onClick={() => router.push('/admin/popups')} className="text-zinc-400 hover:text-white transition">Popups</button>
+                                    <button onClick={() => router.push('/admin/settings')} className="text-zinc-400 hover:text-white transition">Site Content</button>
+                                    <button onClick={() => router.push('/admin/profile')} className="text-zinc-400 hover:text-white transition">Profile</button>
+                                </>
+                            )}
+                        </nav>
+                    </div>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={fetchData}
@@ -196,7 +224,19 @@ export default function DashboardPage() {
                                     <th className="p-4">Order Details</th>
                                     <th className="p-4">Customer</th>
                                     <th className="p-4">Total</th>
-                                    <th className="p-4 text-center">Actions</th>
+                                    <th className="p-4 text-center">
+                                        {activeTab === 'Delivered' && (
+                                            <a
+                                                href="/api/admin/orders/export"
+                                                target="_blank"
+                                                download
+                                                className="text-xs bg-green-900 text-green-400 px-2 py-1 rounded hover:bg-green-800 transition flex items-center gap-1 w-fit mx-auto"
+                                            >
+                                                Download CSV
+                                            </a>
+                                        )}
+                                        {!activeTab.includes('Delivered') && 'Actions'}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-800">

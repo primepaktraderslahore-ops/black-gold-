@@ -1,6 +1,28 @@
+"use client";
+
+import { useEffect, useState } from 'react';
 import { MapPin, Phone } from 'lucide-react';
 
 export default function Footer() {
+    const [content, setContent] = useState({
+        footerBrief: 'Authentic Himalayan Shilajit. Experience the power of nature with our premium quality resin.',
+        whatsappNumber: '0326-4361473'
+    });
+
+    useEffect(() => {
+        fetch('/api/admin/content')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    setContent(prev => ({
+                        footerBrief: data.data.footerBrief || prev.footerBrief,
+                        whatsappNumber: data.data.whatsappNumber || prev.whatsappNumber
+                    }));
+                }
+            })
+            .catch(err => console.error('Footer fetch error', err));
+    }, []);
+
     return (
         <footer className="bg-black text-white pt-12 pb-6 border-t border-zinc-800">
             <div className="container mx-auto px-4">
@@ -9,8 +31,8 @@ export default function Footer() {
                         <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-yellow-500 to-yellow-200 bg-clip-text text-transparent">
                             Black Gold
                         </h3>
-                        <p className="text-zinc-400 max-w-sm">
-                            Authentic Himalayan Shilajit. Experience the power of nature with our premium quality resin.
+                        <p className="text-zinc-400 max-w-sm whitespace-pre-line">
+                            {content.footerBrief}
                         </p>
                     </div>
                     <div className="md:text-right">
@@ -25,7 +47,7 @@ export default function Footer() {
                             </div>
                             <div className="flex items-center md:justify-end gap-3 text-zinc-300">
                                 <Phone className="w-5 h-5 text-yellow-500 shrink-0" />
-                                <p>0326-4361473</p>
+                                <p>{content.whatsappNumber}</p>
                             </div>
                         </div>
                     </div>
