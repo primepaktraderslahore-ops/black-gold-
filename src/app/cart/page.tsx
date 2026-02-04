@@ -42,7 +42,7 @@ export default function CartPage() {
         phone: '',
         address: '',
         address2: '',
-        cnic: '',
+
         postalCode: '',
         province: '',
         city: '',
@@ -104,7 +104,7 @@ export default function CartPage() {
 
         // Validation
         const phoneRegex = /^\d+$/;
-        const cnicRegex = /^\d+$/;
+
 
         if (!formData.address.trim()) {
             alert("Address is required.");
@@ -121,10 +121,7 @@ export default function CartPage() {
             return;
         }
 
-        if (!cnicRegex.test(formData.cnic) || formData.cnic.length !== 13) {
-            alert("CNIC must be exactly 13 digits.");
-            return;
-        }
+
 
         setShowReview(true);
     };
@@ -348,27 +345,16 @@ export default function CartPage() {
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-sm text-zinc-400">CNIC</label>
-                                                <input
-                                                    type="text"
-                                                    name="cnic"
-                                                    required
-                                                    className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 focus:outline-none focus:border-yellow-500"
-                                                    onChange={handleChange}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-sm text-zinc-400">Postal Code</label>
-                                                <input
-                                                    type="text"
-                                                    name="postalCode"
-                                                    required
-                                                    className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 focus:outline-none focus:border-yellow-500"
-                                                    onChange={handleChange}
-                                                />
-                                            </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm text-zinc-400">Postal Code</label>
+                                            <input
+                                                type="text"
+                                                name="postalCode"
+                                                required
+                                                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-3 focus:outline-none focus:border-yellow-500"
+                                                onChange={handleChange}
+                                            />
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

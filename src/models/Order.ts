@@ -22,7 +22,7 @@ export interface IOrder extends Document {
         phone: string;
         address: string;
         address2?: string;
-        cnic: string;
+
         postalCode: string;
         province: string;
         city: string;
@@ -53,16 +53,7 @@ const OrderSchema: Schema = new Schema(
             },
             address: { type: String, required: true },
             address2: { type: String },
-            cnic: {
-                type: String,
-                required: true,
-                validate: {
-                    validator: function (v: string) {
-                        return /^\d{13}$/.test(v);
-                    },
-                    message: (props: any) => `${props.value} is not a valid 13-digit CNIC!`
-                }
-            },
+
             postalCode: { type: String, required: true },
             province: { type: String, required: true },
             city: { type: String, required: true },
